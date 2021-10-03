@@ -15,6 +15,7 @@ library(rvest)
 library(tidyverse)
 library(dplyr)
 library(janitor)
+library(stringr)
 ```
 En primer lugar, se descargará la tabla
 
@@ -37,8 +38,96 @@ tabla_aglom <- tabla_aglom %>%
 
 Lamentablemente, la función "clean_names" no fue suficiente, así que se renombrarán las variables para poder manipularlas con comodidad. 
 
+```{r}
+tabla_aglom <- tabla_aglom %>% 
+  rename(Numero=1, Aglomerado=2, Prov=3, censo_2010=4, censo_2001=5, censo_1991=6, censo_1980=7, censo_1970=8, censo_1960=9 )
+```
+
+Se eliminarán algunas columnas con el fin de mantener solamente la información más actualizada de los censos.
+```{r}
+tabla_aglom <- tabla_aglom %>% 
+  select(1:5)
+```
+
+```{r}
+class(tabla_aglom$Aglomerado)
+```
+Una vez renombradas las variables, se observa que han quedado las referencias en los Aglomerados. Para eliminarlas: 
+
+```{r}
+tabla_aglom <- tabla_aglom %>% 
+  mutate(Aglomerado=str_replace_all(Aglomerado, "[:digit:]", "")) %>% 
+  mutate(Aglomerado=str_replace_all(Aglomerado, "[:punct:]", ""))
+```
+
+También se modificaran los valores de la cantiadad de habitantes según los censos, ya que los números se encuentran separados por espacios.
+
+```{r}
+tabla_aglom <- tabla_aglom %>% 
+  mutate(censo_2010=str_replace_all(censo_2010, "[:blank:]", "")) %>% 
+  mutate(censo_2001=str_replace_all(censo_2001, "[:blank:]", ""))
+```
+
+Ahora sí, el dataset ya está listo para usar. Por ejemplo, se podría analizar y comparar a qué provincias pertencen los aglomerados y cuántos de ellos:
+
+```{r}
+aglom_x_prov <- tabla_aglom %>% 
+  group_by(Prov) %>% 
+  summarise(cantidad=n()) %>% 
+  arrange(-cantidad)
+```
+
+```{r}
+calcular_pct <- function(data){
+  round(data/(sum(data, na.rm = FALSE))*100,1)}
+```
+
+```{r}
+aglom_x_prov <- aglom_x_prov %>% 
+  mutate(pct=calcular_pct(data= cantidad))
+```
+
+En la tabla anterior se puede observar que hay algunos aglomerados que pertenecen a dos provincias. Se dejó esa doble pertenencia a propósito, ya que es interesante ver que hay aglomerados que se extienden más allá de los límites provinciales. De todas formas, a partir de la tabla anterior es posible observar que solamente hay un aglomerado para cada caso (Buenos Aires – Santa Fe / Ciudad de Buenos Aires -Provincia de Buenos Aires / Córdoba – Santa Fe / Neuquén-Río Negro / Río Negro- Buenos Aires)
+Asimismo, en la tabla anterior es posible observar que el 21% de los principales aglomerados de Argentina se encuentran en la provincia de Buenos Aires y el 11%, en la de Córdoba. El resto de las provincias poseen menos del 10% de los aglomerados principales del país. 
+
+Por último, resulta interesante hacer un análisis de la variación poblacional en los aglomerados, entre un censo (2001) y otro (2010). 
+
+```{r}
+class(tabla_aglom$censo_2001)
+```
+```{r}
+class(tabla_aglom$censo_2010)
+```
+
+```{r}
+tabla_aglom <- tabla_aglom %>% 
+  mutate(censo_2001=as.numeric(censo_2001)) %>% 
+  mutate(censo_2010=as.numeric(censo_2010))
+```
+
+```{r}
+tabla_aglom <- tabla_aglom %>% 
+  mutate(censo_2010_2001= censo_2010 - censo_2001)
+```
+
+```{r}
+variacion_censal <- tabla_aglom %>% 
+  arrange(-censo_2010_2001)
+```
+
+```{r}
+variacion_censal <- variacion_censal %>% 
+  mutate(variacion=censo_2010_2001*100/censo_2001)
+```
+
+```{r}
+variacion_censal %>% 
+  apply(2, which.max)
+```
+A partir de la información anterior se evidencia que, si bien el aglomerado más grande en términos de cantidad de habitantes es el de Gran Buenos Aires, el aglomerado que registró el mayor crecimiento de población entre 2001 y 2010 fue Luján (ubicado en la fila número 17). 
 
 
 
 
+*Nota: Intenté hacer este TP con una tabla con información de Airbnb también pero no lo logré. Luego les preguntaré en el slack como puedo hacer ya que me sería de utilidad para mi tesis. Gracias!*
 
