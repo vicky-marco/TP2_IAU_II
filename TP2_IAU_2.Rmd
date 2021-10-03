@@ -5,4 +5,40 @@ date: "3/10/2021"
 output: html_document
 ---
 
+#Trabajo Práctico 2
+*Aclaración: Este trabajo práctico se realizará en R.marckdown ya que en el anterior (TP1) no fue posible colocar títulos de mayor tamaño y otros diseños estéticos.*
+
+En este trabajo práctico se llevará a cabo el scrapeo de una base ubicada en internet, más particularmente de una tabla en la que se encuentran los principales aglomerados de la Argentina y sus datos.  
+
+```{r}
+library(rvest)
+library(tidyverse)
+library(dplyr)
+library(janitor)
+```
+En primer lugar, se descargará la tabla
+
+```{r}
+aglomerados <- "https://es.wikipedia.org/wiki/Anexo:%C3%81reas_urbanas_de_Argentina_con_m%C3%A1s_de_30_000_habitantes"
+```
+
+```{r}
+tabla_aglom <- read_html(aglomerados) %>% 
+  html_nodes(xpath= '//*[@id="mw-content-text"]/div[1]/table') %>% 
+  html_table(fill=T) %>% 
+  as.data.frame()
+```
+
+Los nombres de las columnas no son fáciles de manipular, por lo tanto, se aplicará "clean_names"
+```{r}
+tabla_aglom <- tabla_aglom %>% 
+  clean_names()
+```
+
+Lamentablemente, la función "clean_names" no fue suficiente, así que se renombrarán las variables para poder manipularlas con comodidad. 
+
+
+
+
+
 
